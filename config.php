@@ -2,13 +2,17 @@
 
 return [
     'db' => [
-        'host' => 'localhost',
-        'database' => 'ibuiytdd_rmsmd',
-        'username' => 'ibuiytdd_rmsmd',
-        'password' => 'hGaKCGWWxjY27)9W',
-        'charset' => 'utf8mb4'
+        'host' => $_ENV['DB_HOST'] ?? 'localhost',
+        'database' => $_ENV['DB_DATABASE'] ?? '',
+        'username' => $_ENV['DB_USERNAME'] ?? '',
+        'password' => $_ENV['DB_PASSWORD'] ?? '',
+        'charset' => $_ENV['DB_CHARSET'] ?? 'utf8mb4'
     ],
     'jwt' => [
-        'secret_key' => 'CLAVE_SUPER_SECRETA_2026_MUY_EXTENSA_Y_COMPLEJA'
+        'secret_key' => $_ENV['JWT_SECRET'] ?? ''
+    ],
+    'app' => [
+        'env' => $_ENV['APP_ENV'] ?? 'production',
+        'url' => $_ENV['APP_URL'] ?? 'http://localhost'
     ]
 ];
