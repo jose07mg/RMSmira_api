@@ -25,36 +25,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 header("Content-Type: application/json; charset=utf-8");
 
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-// Extraer el Base Path desde la configuración de entorno (Ej: "/RMSmira_api/public" o "/api" en producción)
 $appUrl = $_ENV['APP_URL'] ?? 'http://localhost/RMSmira_api/public';
-$basePath = parse_url($appUrl, PHP_URL_PATH);
-// Si $basePath es null o "/", lo seteamos a vacío para validaciones seguras
-if (!$basePath || $basePath === '/') {
-    $basePath = '';
-}
+$basePath = rtrim(parse_url($appUrl, PHP_URL_PATH) ?: '', '/');
 
-// Remover la barra final de basePath por si acaso
-$basePath = rtrim($basePath, '/');
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+// Quitar el BasePath de la URI entrante para que las rutas solo vean lo que nos importa (ej: "/login" en vez de "/RMSmira/public/login")
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$route = str_replace($basePath, '', $uri);
 
-if ($uri === "$basePath/login" && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    (new AuthController())->login();
-} elseif ($uri === "$basePath/me" && $_SERVER['REQUEST_METHOD'] === 'GET') {
-    // Al llamar handle(), valida el token y devuelve el Payload (o mata la ejecución con HTTP 401)
-    $jwtDecoded = JwtMiddleware::handle();
-    (new UserController())->me($jwtDecoded);
-} elseif ($uri === "$basePath/manuales/marcas" && $_SERVER['REQUEST_METHOD'] === 'GET') {
-    $jwtDecoded = JwtMiddleware::handle();
-    (new EquipoController())->getMarcasDisponibles($jwtDecoded);
-} elseif ($uri === "$basePath/manuales/equipos" && $_SERVER['REQUEST_METHOD'] === 'GET') {
-    $jwtDecoded = JwtMiddleware::handle();
-    $marcaId = isset($_GET['marca_id']) ? $_GET['marca_id'] : null;
-    (new EquipoController())->getEquiposPorMarcaId($jwtDecoded, $marcaId);
-} elseif ($uri === "$basePath/manuales/equipo" && $_SERVER['REQUEST_METHOD'] === 'GET') {
-    $jwtDecoded = JwtMiddleware::handle();
-    $equipoId = isset($_GET['id']) ? $_GET['id'] : null;
-    (new EquipoController())->getDetalleEquipo($jwtDecoded, $equipoId);
+// Router simplificado: Arreglo donde mapeamos el [MÉTODO][Ruta] => [Controlador, Función, ¿Requiere JWT?]
+$routes = [
+    'POST' => [
+        '/login' => [AuthController::class, 'login', false]
+    ],
+    'GET' => [
+        '/me' => [UserController::class, 'me', true],
+        '/manuales/marcas' => [EquipoController::class, 'getMarcasDisponibles', true],
+        '/manuales/equipos' => [EquipoController::class, 'getEquiposPorMarcaId', true],
+        '/manuales/equipo' => [EquipoController::class, 'getDetalleEquipo', true]
+    ]
+];
+
+// Comprobar si existe la ruta para ese método específico
+if (isset($routes[$requestMethod][$route])) {
+    list($controllerClass, $methodName, $requiresAuth) = $routes[$requestMethod][$route];
+
+    $payload = null;
+    if ($requiresAuth) {
+        // Ejecutar Middleware antes de dejar pasar la petición
+        $payload = JwtMiddleware::handle();
+    }
+
+    // Instanciar el controlador y llamar a su método, pasándole los datos necesarios (payload y $_GET en este caso base) "
+    $controller = new $controllerClass();
+    if ($payload) {
+        $controller->$methodName($payload, $_GET);
+    } else {
+        $controller->$methodName();
+    }
 } else {
     Response::error("Ruta no encontrada o método no permitido", 404);
 }
