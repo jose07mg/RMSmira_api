@@ -94,3 +94,4 @@ Para verificar que la API está corriendo feliz en sus nuevas tierras, utiliza P
 - **Body JSON**: `{"username": "admin", "password": "mipassword123"}`
 
 Si todo ha ido bien, recibirás de vuelta en JSON la cadena JWT de autorización, y con ese código podrás pegarlo en el *Authorization* *Bearer Token* del EndPoint `/me`.
+
