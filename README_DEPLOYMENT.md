@@ -61,6 +61,7 @@ APP_ENV="production"
 APP_URL="https://tu-dominio.com/rms_api/public"
 ```
 
+
 ## 🛠 4. Base de Datos
 No olvides exportar tu base de datos desde tu *phpMyAdmin* local, y ejecutar el bloque SQL importándolo en el *phpMyAdmin* del panel de control de tu servidor contratado. 
 Recuerda que ahora tenemos las nuevas tablas de RBAC (`as_menus` y `as_role_menus`).
