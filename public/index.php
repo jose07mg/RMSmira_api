@@ -52,16 +52,16 @@ if (isset($routes[$requestMethod][$route])) {
 
     $payload = null;
     if ($requiresAuth) {
-        // Ejecutar Middleware antes de dejar pasar la petición
         $payload = JwtMiddleware::handle();
     }
 
-    // Instanciar el controlador y llamar a su método, pasándole los datos necesarios (payload y $_GET en este caso base) "
     $controller = new $controllerClass();
-    if ($payload) {
+    
+    // Llamamos siempre al método pasándole el array $_GET entero (el Controlador decide qué extrae)
+    if ($requiresAuth) {
         $controller->$methodName($payload, $_GET);
     } else {
-        $controller->$methodName();
+        $controller->$methodName($_GET);
     }
 } else {
     Response::error("Ruta no encontrada o método no permitido", 404);
