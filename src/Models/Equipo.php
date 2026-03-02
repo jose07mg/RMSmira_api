@@ -125,4 +125,50 @@ class Equipo {
         $result = $stmt->get_result();
         return $result->fetch_assoc();
     }
+
+    public static function getManualEquipoPorId($id) {
+        $conn = Database::getInstance();
+
+        $query = "
+            SELECT * 
+            FROM equipos e
+            JOIN docsequipos dc ON e.referencia = dc.idequipo
+            WHERE e.id = ?
+        ";
+        
+        $stmt = $conn->prepare($query);
+
+        if (!$stmt) {
+            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+        }
+
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    }
+
+    public static function getManualEquipoPorReferencia($referencia) {
+        $conn = Database::getInstance();
+
+        $query = "
+            SELECT * 
+            FROM equipos e
+            JOIN docsequipos dc ON e.referencia = dc.idequipo
+            WHERE e.referencia = ?
+        ";
+        
+        $stmt = $conn->prepare($query);
+
+        if (!$stmt) {
+            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+        }
+
+        $stmt->bind_param("s", $referencia);
+        $stmt->execute();
+        
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    }
 }

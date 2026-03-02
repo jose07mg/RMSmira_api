@@ -42,7 +42,8 @@ $routes = [
         '/me' => [UserController::class, 'me', true],
         '/manuales/marcas' => [EquipoController::class, 'getMarcasDisponibles', true],
         '/manuales/equipos' => [EquipoController::class, 'getEquiposPorMarcaId', true],
-        '/manuales/equipo' => [EquipoController::class, 'getDetalleEquipo', true]
+        '/manuales/equipo' => [EquipoController::class, 'getDetalleEquipo', true],
+        '/manuales/equipo/manual' => [EquipoController::class, 'getManualEquipo', true]
     ]
 ];
 

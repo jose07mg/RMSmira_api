@@ -63,4 +63,31 @@ class EquipoController {
             "data" => $equipo
         ]);
     }
+
+    public function getManualEquipo($jwtPayload, $queryParams = []) {
+        $id = isset($queryParams['id']) ? $queryParams['id'] : null;
+        $referencia = isset($queryParams['referencia']) ? $queryParams['referencia'] : null;
+
+        if (!$id && !$referencia) {
+            return Response::error("Se requiere un ID o una referencia del equipo", 400);
+        }
+
+        $manual = null;
+        if ($id && is_numeric($id)) {
+            $manual = Equipo::getManualEquipoPorId($id);
+        } else if ($referencia) {
+            $manual = Equipo::getManualEquipoPorReferencia($referencia);
+        } else {
+             return Response::error("Parámetros inválidos", 400);
+        }
+
+        if (!$manual) {
+            return Response::error("Manual no encontrado", 404);
+        }
+
+        return Response::json([
+            "success" => true,
+            "data" => $manual
+        ]);
+    }
 }
