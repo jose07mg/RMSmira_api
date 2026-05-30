@@ -44,10 +44,10 @@ class ReservaController {
         $adultos       = intval($data['adultos'] ?? 1);
         $bebes         = intval($data['bebes']   ?? 0);
 
-        // Detect actual column names
+        // Detectar columnas reales
         $cols = [];
-        $cr = $db->query("SHOW COLUMNS FROM reservas");
-        while ($row = $cr->fetch_assoc()) { $cols[] = $row['Field']; }
+        $cr   = $db->query("SHOW COLUMNS FROM reservas");
+        if ($cr) { while ($row = $cr->fetch_assoc()) { $cols[] = $row['Field']; } }
 
         $fInicio = in_array('fecha_entrada', $cols) ? 'fecha_entrada' : 'fecha_inicio';
         $fFin    = in_array('fecha_salida',  $cols) ? 'fecha_salida'  : 'fecha_fin';
@@ -142,44 +142,59 @@ class ReservaController {
     public function getReservasUsuario($payload, $params = []) {
         $db = Database::getConnection();
 
-        // Detect actual column names (migration may have renamed them)
-        $cols = [];
-        $cr = $db->query("SHOW COLUMNS FROM reservas");
+        // Detectar columnas reales (por si el esquema usa nombres distintos)
+        $cols    = [];
+        $cr      = $db->query("SHOW COLUMNS FROM reservas");
+        if (!$cr) {
+            // Tabla no existe todavía → devolver lista vacía en lugar de error
+            Response::success([]);
+            return;
+        }
         while ($row = $cr->fetch_assoc()) { $cols[] = $row['Field']; }
 
-        $fInicio   = in_array('fecha_entrada', $cols) ? 'fecha_entrada' : 'fecha_inicio';
-        $fFin      = in_array('fecha_salida',  $cols) ? 'fecha_salida'  : 'fecha_fin';
-        $fPrecio   = in_array('precio_total',  $cols) ? 'precio_total'  : 'total_precio';
-        $fCreated  = in_array('created_at',    $cols) ? 'r.created_at'  : 'r.id_reserva';
-        $orderBy   = in_array('created_at',    $cols) ? 'r.created_at DESC' : 'r.id_reserva DESC';
+        $fInicio = in_array('fecha_entrada', $cols) ? 'fecha_entrada' : 'fecha_inicio';
+        $fFin    = in_array('fecha_salida',  $cols) ? 'fecha_salida'  : 'fecha_fin';
+        $fPrecio = in_array('precio_total',  $cols) ? 'precio_total'  : 'total_precio';
+        $orderBy = in_array('created_at',    $cols) ? 'r.created_at DESC' : 'r.id_reserva DESC';
 
         $stmt = $db->prepare("
             SELECT
                 r.id_reserva, r.id_hotel, r.id_habitacion,
                 r.nombre_huesped AS nombre,
                 r.dni, r.telefono,
-                r.$fInicio  AS fecha_inicio,
-                r.$fFin     AS fecha_fin,
+                r.$fInicio        AS fecha_inicio,
+                r.$fFin           AS fecha_fin,
                 r.adultos, r.bebes, r.necesita_cuna,
                 r.es_reembolsable, r.con_desayuno,
-                r.$fPrecio  AS total_precio,
+                r.$fPrecio        AS total_precio,
                 r.estado,
-                $fCreated   AS created_at,
                 h.nombre          AS nombre_hotel,
                 c.nombre          AS ciudad,
                 p.nombre          AS pais,
                 ha.tipo_habitacion AS habitacion_tipo
             FROM reservas r
-            JOIN hoteles     h  ON r.id_hotel       = h.id_hotel
-            JOIN ciudades    c  ON h.id_ciudad       = c.id_ciudad
-            JOIN paises      p  ON c.id_pais         = p.id_pais
+            JOIN hoteles     h  ON r.id_hotel        = h.id_hotel
+            JOIN ciudades    c  ON h.id_ciudad        = c.id_ciudad
+            JOIN paises      p  ON c.id_pais          = p.id_pais
             LEFT JOIN habitaciones ha ON r.id_habitacion = ha.id_habitacion
             WHERE r.id_usuario = ?
             ORDER BY $orderBy
         ");
+
+        if (!$stmt) {
+            Response::error("Error preparando consulta: " . $db->error, 500);
+            return;
+        }
+
         $stmt->bind_param("i", $payload['id_usuario']);
         $stmt->execute();
+        $result = $stmt->get_result();
 
-        Response::success($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        if (!$result) {
+            Response::error("Error ejecutando consulta: " . $stmt->error, 500);
+            return;
+        }
+
+        Response::success($result->fetch_all(MYSQLI_ASSOC));
     }
 }
