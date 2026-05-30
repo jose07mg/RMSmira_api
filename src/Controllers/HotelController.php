@@ -70,11 +70,14 @@ class HotelController {
         ");
         $stmt->bind_param("i", $id);
         $stmt->execute();
+        $result = $stmt->get_result();
 
         $data = [];
-        while ($row = $stmt->get_result()->fetch_assoc()) {
-            $row['servicios'] = $row['servicios'] ? explode(',', $row['servicios']) : [];
-            $data[] = $row;
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $row['servicios'] = $row['servicios'] ? explode(',', $row['servicios']) : [];
+                $data[] = $row;
+            }
         }
 
         Response::success($data);
