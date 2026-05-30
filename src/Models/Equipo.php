@@ -25,7 +25,7 @@ class Equipo {
         $stmt = $conn->prepare($query);
 
         if (!$stmt) {
-            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+            throw new \Exception("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
 
         $stmt->execute();
@@ -53,7 +53,7 @@ class Equipo {
         $stmt = $conn->prepare($query);
 
         if (!$stmt) {
-            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+            throw new \Exception("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
 
         $stmt->execute();
@@ -81,7 +81,7 @@ class Equipo {
         $stmt = $conn->prepare($query);
 
         if (!$stmt) {
-            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+            throw new \Exception("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
 
         $stmt->bind_param("i", $marcaId);
@@ -116,7 +116,7 @@ class Equipo {
         $stmt = $conn->prepare($query);
 
         if (!$stmt) {
-            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+            throw new \Exception("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
 
         $stmt->bind_param("i", $equipoId);
@@ -130,7 +130,13 @@ class Equipo {
         $conn = Database::getInstance();
 
         $query = "
-            SELECT * 
+            SELECT 
+                e.id, 
+                e.tituloequipo, 
+                e.referencia, 
+                e.modelo, 
+                dc.archivo as manual_pdf,
+                dc.nombre as nombre_documento
             FROM equipos e
             JOIN docsequipos dc ON e.referencia = dc.idequipo
             WHERE e.id = ?
@@ -139,7 +145,7 @@ class Equipo {
         $stmt = $conn->prepare($query);
 
         if (!$stmt) {
-            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+            throw new \Exception("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
 
         $stmt->bind_param("i", $id);
@@ -153,7 +159,13 @@ class Equipo {
         $conn = Database::getInstance();
 
         $query = "
-            SELECT * 
+            SELECT 
+                e.id, 
+                e.tituloequipo, 
+                e.referencia, 
+                e.modelo, 
+                dc.archivo as manual_pdf,
+                dc.nombre as nombre_documento
             FROM equipos e
             JOIN docsequipos dc ON e.referencia = dc.idequipo
             WHERE e.referencia = ?
@@ -162,7 +174,7 @@ class Equipo {
         $stmt = $conn->prepare($query);
 
         if (!$stmt) {
-            die("Prepare failed: (" . $conn->errno . ") " . $conn->error);
+            throw new \Exception("Prepare failed: (" . $conn->errno . ") " . $conn->error);
         }
 
         $stmt->bind_param("s", $referencia);
