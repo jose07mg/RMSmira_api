@@ -16,10 +16,12 @@ class ReviewController {
             $idHotel = intval($params['id_hotel']);
             $stmt    = $db->prepare("
                 SELECT r.id_review, r.id_hotel, r.id_usuario,
-                       u.usuario AS usuario_nombre,
+                       u.usuario  AS usuario_nombre,
+                       h.nombre   AS hotel_nombre,
                        r.puntuacion, r.comentario, r.fecha
-                FROM   reviews r
+                FROM   reviews  r
                 JOIN   usuarios u ON r.id_usuario = u.id_usuario
+                LEFT JOIN hoteles h ON r.id_hotel = h.id_hotel
                 WHERE  r.id_hotel = ?
                 ORDER  BY r.fecha DESC
             ");
@@ -29,10 +31,12 @@ class ReviewController {
         } else {
             $result = $db->query("
                 SELECT r.id_review, r.id_hotel, r.id_usuario,
-                       u.usuario AS usuario_nombre,
+                       u.usuario  AS usuario_nombre,
+                       h.nombre   AS hotel_nombre,
                        r.puntuacion, r.comentario, r.fecha
-                FROM   reviews r
+                FROM   reviews  r
                 JOIN   usuarios u ON r.id_usuario = u.id_usuario
+                LEFT JOIN hoteles h ON r.id_hotel = h.id_hotel
                 ORDER  BY r.fecha DESC
             ");
             $data = $result->fetch_all(MYSQLI_ASSOC);
