@@ -56,13 +56,17 @@ class UserController {
                    fecha_nacimiento = ?
             WHERE  id_usuario = ?
         ");
+        $direccion       = ($data['direccion']        ?? '') !== '' ? $data['direccion']        : null;
+        $paisNacimiento  = ($data['pais_nacimiento']  ?? '') !== '' ? $data['pais_nacimiento']  : null;
+        $fechaNacimiento = ($data['fecha_nacimiento'] ?? '') !== '' ? $data['fecha_nacimiento'] : null;
+
         $stmt->bind_param(
             "sssssi",
             $data['usuario'],
             $data['email'],
-            $data['direccion']       ?? null,
-            $data['pais_nacimiento'] ?? null,
-            $data['fecha_nacimiento']?? null,
+            $direccion,
+            $paisNacimiento,
+            $fechaNacimiento,
             $payload['id_usuario']
         );
 
