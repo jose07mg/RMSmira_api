@@ -12,6 +12,13 @@ class ReviewController {
     public function getReviews($params = []) {
         $db = Database::getConnection();
 
+        // Tabla no existe aún → devolver lista vacía
+        $check = $db->query("SHOW TABLES LIKE 'reviews'");
+        if (!$check || $check->num_rows === 0) {
+            Response::success([]);
+            return;
+        }
+
         if (!empty($params['id_hotel'])) {
             $idHotel = intval($params['id_hotel']);
             $stmt    = $db->prepare("
@@ -47,6 +54,7 @@ class ReviewController {
 
     // ── POST /reviews ─────────────────────────────────────────
     public function crearReview($payload, $params = []) {
+        $db   = Database::getConnection();
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (empty($data['id_hotel']) || !isset($data['puntuacion'])) {
@@ -60,7 +68,6 @@ class ReviewController {
             return;
         }
 
-        $db         = Database::getConnection();
         $idHotel    = intval($data['id_hotel']);
         $idUsuario  = $payload['id_usuario'];
         $comentario = $data['comentario'] ?? null;
