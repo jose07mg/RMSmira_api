@@ -83,6 +83,7 @@ $routes = [
         '/reservas'                 => [ReservaController::class,  'getReservasUsuario', true],
         '/favoritos'                => [FavoriteController::class, 'getHotelFavorites',  true],
         '/reviews'                  => [ReviewController::class,   'getReviews',         false],
+        '/reviews/mine'             => [ReviewController::class,   'getMisReviews',      true],
         // 2FA
         '/2fa/status'               => [TwoFaController::class,    'getStatus',          true],
         // Contacto

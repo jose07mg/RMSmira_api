@@ -7,6 +7,34 @@ use App\Helpers\Response;
 
 class ReviewController {
 
+    // ── GET /reviews/mine  ────────────────────────────────────
+    // Devuelve SOLO las reseñas del usuario autenticado (JWT)
+    public function getMisReviews($payload, $params = []) {
+        $db        = Database::getConnection();
+        $idUsuario = intval($payload['id_usuario'] ?? 0);
+
+        $check = $db->query("SHOW TABLES LIKE 'reviews'");
+        if (!$check || $check->num_rows === 0) {
+            Response::success([]);
+            return;
+        }
+
+        $stmt = $db->prepare("
+            SELECT r.id_review, r.id_hotel, r.id_usuario,
+                   u.usuario  AS usuario_nombre,
+                   h.nombre   AS hotel_nombre,
+                   r.puntuacion, r.comentario, r.fecha
+            FROM   reviews  r
+            JOIN   usuarios u ON r.id_usuario = u.id_usuario
+            LEFT JOIN hoteles h ON r.id_hotel = h.id_hotel
+            WHERE  r.id_usuario = ?
+            ORDER  BY r.fecha DESC
+        ");
+        $stmt->bind_param("i", $idUsuario);
+        $stmt->execute();
+        Response::success($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+    }
+
     // ── GET /reviews  ──────────────────────────────────────────
     // Acepta ?id_hotel=X para filtrar por hotel
     public function getReviews($params = []) {
@@ -33,6 +61,22 @@ class ReviewController {
                 ORDER  BY r.fecha DESC
             ");
             $stmt->bind_param("i", $idHotel);
+            $stmt->execute();
+            $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        } elseif (!empty($params['id_usuario'])) {
+            $idUsuario = intval($params['id_usuario']);
+            $stmt      = $db->prepare("
+                SELECT r.id_review, r.id_hotel, r.id_usuario,
+                       u.usuario  AS usuario_nombre,
+                       h.nombre   AS hotel_nombre,
+                       r.puntuacion, r.comentario, r.fecha
+                FROM   reviews  r
+                JOIN   usuarios u ON r.id_usuario = u.id_usuario
+                LEFT JOIN hoteles h ON r.id_hotel = h.id_hotel
+                WHERE  r.id_usuario = ?
+                ORDER  BY r.fecha DESC
+            ");
+            $stmt->bind_param("i", $idUsuario);
             $stmt->execute();
             $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         } else {

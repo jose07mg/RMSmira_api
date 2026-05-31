@@ -46,34 +46,50 @@ class UserController {
     public function update($payload, $params = []) {
         $data = json_decode(file_get_contents("php://input"), true);
 
+        if (!is_array($data)) {
+            Response::error("Datos no válidos", 400);
+            return;
+        }
+
+        $usuario = trim($data['usuario'] ?? '');
+        $email   = trim($data['email']   ?? '');
+
+        if ($usuario === '' || $email === '') {
+            Response::error("Usuario y email son obligatorios", 400);
+            return;
+        }
+
+        $idUsuario      = intval($payload['id_usuario'] ?? 0);
+        // Cadenas vacías → NULLIF en SQL las convierte a NULL en BD (evita pasar null a bind_param)
+        $direccion      = trim($data['direccion']        ?? '');
+        $paisNacimiento = trim($data['pais_nacimiento']  ?? '');
+        $fechaNac       = trim($data['fecha_nacimiento'] ?? '');
+
         $db   = Database::getConnection();
         $stmt = $db->prepare("
             UPDATE usuarios
             SET    usuario          = ?,
                    email            = ?,
-                   direccion        = ?,
-                   pais_nacimiento  = ?,
-                   fecha_nacimiento = ?
+                   direccion        = NULLIF(?, ''),
+                   pais_nacimiento  = NULLIF(?, ''),
+                   fecha_nacimiento = NULLIF(?, '')
             WHERE  id_usuario = ?
         ");
-        $direccion       = ($data['direccion']        ?? '') !== '' ? $data['direccion']        : null;
-        $paisNacimiento  = ($data['pais_nacimiento']  ?? '') !== '' ? $data['pais_nacimiento']  : null;
-        $fechaNacimiento = ($data['fecha_nacimiento'] ?? '') !== '' ? $data['fecha_nacimiento'] : null;
 
-        $stmt->bind_param(
-            "sssssi",
-            $data['usuario'],
-            $data['email'],
-            $direccion,
-            $paisNacimiento,
-            $fechaNacimiento,
-            $payload['id_usuario']
-        );
+        if (!$stmt) {
+            Response::error("Error preparando consulta: " . $db->error, 500);
+            return;
+        }
+
+        $stmt->bind_param("sssssi", $usuario, $email, $direccion, $paisNacimiento, $fechaNac, $idUsuario);
 
         if ($stmt->execute()) {
+            $stmt->close();
             Response::success(["message" => "Usuario actualizado"]);
         } else {
-            Response::error("Error al actualizar el usuario", 500);
+            $err = $stmt->error;
+            $stmt->close();
+            Response::error("Error al actualizar: " . $err, 500);
         }
     }
 
