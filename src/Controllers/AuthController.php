@@ -103,27 +103,22 @@ class AuthController {
             return;
         }
 
-        $hash  = password_hash($data['password'], PASSWORD_BCRYPT);
-        $saldo = 5000.00;
+        $hash = password_hash($data['password'], PASSWORD_BCRYPT);
 
-        // Try insert with saldo column; fall back without it if the column doesn't exist
-        $stmt = $db->prepare("INSERT INTO usuarios (usuario, email, password, saldo) VALUES (?, ?, ?, ?)");
-        if ($stmt) {
-            $stmt->bind_param("sssd", $data['usuario'], $data['email'], $hash, $saldo);
-            if ($stmt->execute()) {
-                Response::success(["message" => "Usuario registrado correctamente"], 201);
-                return;
-            }
+        $stmt = $db->prepare("INSERT INTO usuarios (usuario, email, password) VALUES (?, ?, ?)");
+        if (!$stmt) {
+            Response::error("Error preparando consulta: " . $db->error, 500);
+            return;
         }
+        $stmt->bind_param("sss", $data['usuario'], $data['email'], $hash);
 
-        // Fallback: insert without saldo
-        $stmt2 = $db->prepare("INSERT INTO usuarios (usuario, email, password) VALUES (?, ?, ?)");
-        $stmt2->bind_param("sss", $data['usuario'], $data['email'], $hash);
-
-        if ($stmt2->execute()) {
+        if ($stmt->execute()) {
+            $stmt->close();
             Response::success(["message" => "Usuario registrado correctamente"], 201);
         } else {
-            Response::error("Error al registrar el usuario", 500);
+            $err = $stmt->error;
+            $stmt->close();
+            Response::error("Error al registrar el usuario: " . $err, 500);
         }
     }
 
@@ -135,7 +130,7 @@ class AuthController {
             return;
         }
 
-        $userId  = $payload['id_usuario'];
+        $userId  = intval($payload['id_usuario']);
         $newHash = password_hash($data['new_password'], PASSWORD_BCRYPT);
 
         $db   = Database::getConnection();

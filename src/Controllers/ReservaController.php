@@ -103,23 +103,39 @@ class ReservaController {
         $db   = Database::getConnection();
         $data = json_decode(file_get_contents("php://input"), true);
 
-        if (!is_array($data) || empty($data['id_reserva'])) {
+        if (!is_array($data) || !isset($data['id_reserva']) || intval($data['id_reserva']) <= 0) {
             Response::error("ID de reserva requerido", 400);
             return;
         }
 
-        $idReserva = intval($data['id_reserva']);
+        $idReserva  = intval($data['id_reserva']);
+        $idUsuario  = intval($payload['id_usuario'] ?? 0);
 
-        $stmtCheck = $db->prepare("SELECT id_usuario, estado FROM reservas WHERE id_reserva = ?");
-        $stmtCheck->bind_param("i", $idReserva);
-        $stmtCheck->execute();
-        $reserva = $stmtCheck->get_result()->fetch_assoc();
+        if ($idUsuario <= 0) {
+            Response::error("Usuario no autenticado correctamente", 401);
+            return;
+        }
+
+        try {
+            $stmtCheck = $db->prepare("SELECT id_usuario, estado FROM reservas WHERE id_reserva = ?");
+            if (!$stmtCheck) {
+                Response::error("Error interno: " . $db->error, 500);
+                return;
+            }
+            $stmtCheck->bind_param("i", $idReserva);
+            $stmtCheck->execute();
+            $reserva = $stmtCheck->get_result()->fetch_assoc();
+            $stmtCheck->close();
+        } catch (\Throwable $e) {
+            Response::error("Error al buscar la reserva: " . $e->getMessage(), 500);
+            return;
+        }
 
         if (!$reserva) {
             Response::error("Reserva no encontrada", 404);
             return;
         }
-        if ($reserva['id_usuario'] != $payload['id_usuario']) {
+        if (intval($reserva['id_usuario']) !== $idUsuario) {
             Response::error("No tienes permiso para cancelar esta reserva", 403);
             return;
         }
@@ -128,13 +144,24 @@ class ReservaController {
             return;
         }
 
-        $stmt = $db->prepare("UPDATE reservas SET estado = 'cancelada' WHERE id_reserva = ?");
-        $stmt->bind_param("i", $idReserva);
+        try {
+            $stmt = $db->prepare("UPDATE reservas SET estado = 'cancelada' WHERE id_reserva = ?");
+            if (!$stmt) {
+                Response::error("Error interno: " . $db->error, 500);
+                return;
+            }
+            $stmt->bind_param("i", $idReserva);
 
-        if ($stmt->execute()) {
-            Response::success(["message" => "Reserva cancelada correctamente"]);
-        } else {
-            Response::error("No se pudo cancelar la reserva", 500);
+            if ($stmt->execute() && $stmt->affected_rows > 0) {
+                $stmt->close();
+                Response::success(["message" => "Reserva cancelada correctamente"]);
+            } else {
+                $err = $stmt->error ?: "No se pudo actualizar el estado";
+                $stmt->close();
+                Response::error($err, 500);
+            }
+        } catch (\Throwable $e) {
+            Response::error("Error al cancelar la reserva: " . $e->getMessage(), 500);
         }
     }
 
